@@ -1,8 +1,9 @@
-// import AppError from '../errors/AppError';
+import AppError from '../errors/AppError';
 import { getCustomRepository, getRepository } from 'typeorm';
 import TransactionRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
+
 
 
 interface Request {
@@ -15,6 +16,13 @@ interface Request {
 class CreateTransactionService {
   public async execute({ title, value, type, category }: Request): Promise<Transaction> {
 
+    if (type == 'outcome') {
+      const transactionRepository = new TransactionRepository();
+      const balance = await transactionRepository.getBalance();
+      if (Number(value) > balance.total) {
+        throw new AppError("Outcome value is greater than the income");
+      }
+    }
     const transactionRepository = getCustomRepository(TransactionRepository);
 
     const categoryRepository = getRepository(Category);
@@ -28,6 +36,8 @@ class CreateTransactionService {
 
     //verificar se a categoria existe ou não, se não  criar uma nova se sim pegar o id e inserir no category_id
     const categories = await categoryRepository.findOne({ where: { title: category } });
+
+
     const transaction = transactionRepository.create({
       title,
       value,
